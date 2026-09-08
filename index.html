@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>With Love — A Lily For You</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --pink: #ff8fb3;
+    --pink-deep: #e0508a;
+    --gold: #ffd7a8;
+    --ink: #fff6f9;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{
+    width:100%; height:100%; overflow:hidden;
+    background:#0b0410;
+    font-family:'Poppins', sans-serif;
+    color:var(--ink);
+  }
+
+  /* ---------- LAYERS ---------- */
+  #bg-video{
+    position:fixed; inset:0; width:100%; height:100%;
+    object-fit:cover; transform:scaleX(-1);
+    z-index:0; background:#0b0410;
+  }
+  #color-grade{
+    position:fixed; inset:0; z-index:1; pointer-events:none;
+    background:
+      radial-gradient(ellipse at center, rgba(20,0,15,0) 35%, rgba(10,0,10,0.55) 100%),
+      linear-gradient(180deg, rgba(60,0,40,0.25) 0%, rgba(20,0,25,0.15) 50%, rgba(40,0,30,0.35) 100%);
+  }
+  #grain{
+    position:fixed; inset:0; z-index:2; pointer-events:none; opacity:0.04; mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  }
+  #canvas-container{ position:fixed; inset:0; z-index:3; }
+
+  #hearts-layer{ position:fixed; inset:0; z-index:4; pointer-events:none; overflow:hidden; }
+  .drift{
+    position:absolute; bottom:-40px; font-size:18px; opacity:0;
+    animation:driftUp linear infinite;
+    filter:drop-shadow(0 0 6px rgba(255,140,180,0.6));
+  }
+  @keyframes driftUp{
+    0%{ transform:translateY(0) translateX(0) rotate(0deg) scale(0.6); opacity:0; }
+    10%{ opacity:0.85; }
+    85%{ opacity:0.6; }
+    100%{ transform:translateY(-110vh) translateX(var(--drift-x, 30px)) rotate(360deg) scale(1); opacity:0; }
+  }
+
+  /* ---------- TOP LOVE MESSAGE ---------- */
+  #love-wrap{
+    position:fixed; top:6vh; left:50%; transform:translateX(-50%);
+    z-index:6; text-align:center; pointer-events:none;
+    transition:opacity 1s ease, transform 1s ease;
+  }
+  #love-text{
+    font-family:'Dancing Script', cursive;
+    font-size:clamp(2.4rem, 6vw, 4.2rem);
+    font-weight:700;
+    background:linear-gradient(90deg, #ffd7e6, #ff8fb3, #ffd7a8, #ff8fb3, #ffd7e6);
+    background-size:300% 100%;
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    animation:shimmer 6s ease-in-out infinite, heartbeat 2.6s ease-in-out infinite;
+    text-shadow:0 0 30px rgba(255,140,180,0.25);
+  }
+  #love-sub{
+    margin-top:2px; font-size:0.85rem; letter-spacing:4px; text-transform:uppercase;
+    color:rgba(255,235,245,0.65); font-weight:300;
+  }
+  @keyframes shimmer{
+    0%{ background-position:0% 50%; }
+    50%{ background-position:100% 50%; }
+    100%{ background-position:0% 50%; }
+  }
+  @keyframes heartbeat{
+    0%,100%{ transform:scale(1); }
+    10%{ transform:scale(1.06); }
+    20%{ transform:scale(1); }
+    30%{ transform:scale(1.04); }
+    40%{ transform:scale(1); }
+  }
+
+  /* ---------- UI PANEL ---------- */
+  #ui-panel{
+    position:fixed; bottom:24px; left:24px; z-index:10;
+    background:linear-gradient(160deg, rgba(40,10,30,0.55), rgba(20,5,20,0.55));
+    backdrop-filter:blur(14px) saturate(140%);
+    -webkit-backdrop-filter:blur(14px) saturate(140%);
+    border:1px solid rgba(255,180,210,0.25);
+    padding:16px 20px; border-radius:18px; max-width:280px;
+    box-shadow:0 12px 40px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.08);
+  }
+  #ui-panel h2{
+    font-family:'Dancing Script', cursive; font-size:1.5rem; color:#ffd7e6; margin-bottom:4px;
+  }
+  #ui-panel p{ font-size:0.78rem; color:rgba(255,240,245,0.7); line-height:1.5; margin-bottom:10px; font-weight:300; }
+  #status-badge{
+    display:inline-flex; align-items:center; gap:8px; padding:6px 14px; border-radius:20px;
+    font-size:0.78rem; font-weight:500; background:rgba(255,255,255,0.08); color:#e9d5df;
+    transition:all 0.4s ease; border:1px solid rgba(255,255,255,0.1);
+  }
+  #status-badge.active{ background:rgba(240,90,150,0.28); color:#ffe3ef; border-color:rgba(255,150,190,0.45); }
+  #status-badge.closed{ background:rgba(120,50,90,0.28); color:#f2d4e2; }
+  .dot{ width:8px; height:8px; border-radius:50%; background:currentColor; box-shadow:0 0 8px currentColor; animation:pulseDot 1.6s ease-in-out infinite; }
+  @keyframes pulseDot{ 0%,100%{ opacity:1; } 50%{ opacity:0.35; } }
+
+  /* ---------- OVERLAY MESSAGE (permission / loading) ---------- */
+  #overlay-msg{
+    position:fixed; inset:0; z-index:50; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; text-align:center; gap:14px;
+    background:radial-gradient(ellipse at center, #2a0a1e 0%, #0b0410 80%);
+    transition:opacity 0.6s ease;
+  }
+  #overlay-msg h3{ font-family:'Dancing Script', cursive; font-size:2rem; color:#ffb6d5; }
+  #overlay-msg p{ max-width:340px; font-size:0.85rem; color:rgba(255,235,245,0.7); font-weight:300; line-height:1.5; }
+  #overlay-msg button{
+    margin-top:6px; padding:10px 26px; border-radius:30px; border:none; cursor:pointer;
+    background:linear-gradient(120deg, #ff8fb3, #e0508a); color:#fff; font-weight:500;
+    box-shadow:0 8px 24px rgba(224,80,138,0.4); font-family:'Poppins', sans-serif;
+  }
+  .pulse-heart{ font-size:2.4rem; animation:heartbeat 1.8s ease-in-out infinite; }
+  [hidden]{ display:none !important; }
+</style>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+</head>
+<body>
+
+  <video id="bg-video" autoplay playsinline muted></video>
+  <div id="color-grade"></div>
+  <div id="grain"></div>
+  <div id="canvas-container"></div>
+  <div id="hearts-layer"></div>
+
+  <div id="love-wrap">
+    <div id="love-text">With Love</div>
+    <div id="love-sub">open your hand to make it bloom</div>
+  </div>
+
+  <div id="ui-panel">
+    <h2>Lily, Just For You</h2>
+    <p>Open your hand and watch the lilies bloom and sparkle. Make a fist, and they rest again.</p>
+    <div id="status-badge">
+      <span class="dot"></span>
+      <span id="status-text">Waking up the camera…</span>
+    </div>
+  </div>
+
+  <div id="overlay-msg">
+    <div class="pulse-heart">🌸</div>
+    <h3 id="overlay-title">Getting everything ready…</h3>
+    <p id="overlay-body">Please allow camera access — that's how your hand tells the lilies to bloom.</p>
+    <button id="overlay-retry" hidden>Try Again</button>
+  </div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ============================================================
+  // 0. AMBIENT FLOATING HEARTS (pure CSS decor, always gentle)
+  // ============================================================
+  const heartsLayer = document.getElementById('hearts-layer');
+  const heartGlyphs = ['💗', '💕', '✨', '🌸'];
+  function spawnHeart() {
+    const el = document.createElement('span');
+    el.className = 'drift';
+    el.textContent = heartGlyphs[Math.floor(Math.random() * heartGlyphs.length)];
+    const left = Math.random() * 100;
+    const duration = 10 + Math.random() * 10;
+    const driftX = (Math.random() * 120 - 60) + 'px';
+    el.style.left = left + 'vw';
+    el.style.fontSize = (14 + Math.random() * 16) + 'px';
+    el.style.animationDuration = duration + 's';
+    el.style.setProperty('--drift-x', driftX);
+    heartsLayer.appendChild(el);
+    setTimeout(() => el.remove(), duration * 1000 + 500);
+  }
+  setInterval(spawnHeart, 1400);
+  for (let i = 0; i < 4; i++) setTimeout(spawnHeart, i * 500);
+
+  // ============================================================
+  // 1. THREE.JS SCENE
+  // ============================================================
+  const container = document.getElementById('canvas-container');
+  const scene = new THREE.Scene();
+  const camera3d = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 100);
+  camera3d.position.set(0, 0.3, 7.5);
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.15;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.setClearColor(0x000000, 0);
+  container.appendChild(renderer.domElement);
+
+  // Studio-style romantic lighting rig
+  scene.add(new THREE.AmbientLight(0xffe8f0, 1.1));
+
+  const keyLight = new THREE.DirectionalLight(0xfff1e0, 2.2);
+  keyLight.position.set(4, 7, 5);
+  keyLight.castShadow = true;
+  scene.add(keyLight);
+
+  const fillLight = new THREE.DirectionalLight(0xff8fc0, 1.3);
+  fillLight.position.set(-5, 1, 3);
+  scene.add(fillLight);
+
+  const rimLight = new THREE.DirectionalLight(0xffd7a8, 1.6);
+  rimLight.position.set(0, -3, -5);
+  scene.add(rimLight);
+
+  const glowPoint = new THREE.PointLight(0xff5f9e, 1.4, 8, 2);
+  glowPoint.position.set(0, 0.5, 2.5);
+  scene.add(glowPoint);
+
+  // ============================================================
+  // 2. PROCEDURAL LILY — petal / leaf geometry builders
+  // ============================================================
+  function makePetalGeometry(length, width, curl, groove) {
+    const shape = new THREE.Shape();
+    shape.moveTo(0, 0);
+    shape.quadraticCurveTo(width, length * 0.32, width * 0.16, length * 0.82);
+    shape.quadraticCurveTo(width * 0.05, length * 0.99, 0, length);
+    shape.quadraticCurveTo(-width * 0.05, length * 0.99, -width * 0.16, length * 0.82);
+    shape.quadraticCurveTo(-width, length * 0.32, 0, 0);
+
+    const geo = new THREE.ExtrudeGeometry(shape, {
+      depth: 0.028, bevelEnabled: true, bevelThickness: 0.012,
+      bevelSize: 0.012, bevelSegments: 2, steps: 1
+    });
+
+    const pos = geo.attributes.position;
+    const colors = [];
+    const base = new THREE.Color('#fff6f8');
+    const tip = new THREE.Color('#ff5f9e');
+    const speckle = new THREE.Color('#a3105e');
+
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+      const t = THREE.MathUtils.clamp(y / length, 0, 1);
+      // groove: concave channel gives the petal a natural "cupped" cross-section
+      const grooveZ = -groove * (1 - Math.pow(x / (width || 1), 2));
+      // curl: tip arches backward the way a mature lily petal reflexes
+      const curlZ = curl * Math.pow(t, 2.3);
+      pos.setZ(i, z + grooveZ + curlZ);
+
+      const c = base.clone().lerp(tip, Math.pow(t, 0.55));
+      if (t < 0.5 && Math.random() < 0.15) c.lerp(speckle, Math.random() * 0.55);
+      colors.push(c.r, c.g, c.b);
+    }
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    geo.computeVertexNormals();
+    geo.translate(0, 0, 0);
+    return geo;
+  }
+
+  function makeLeafGeometry(length, width, curl) {
+    const shape = new THREE.Shape();
+    shape.moveTo(0, 0);
+    shape.quadraticCurveTo(width, length * 0.4, 0, length);
+    shape.quadraticCurveTo(-width, length * 0.4, 0, 0);
+    const geo = new THREE.ExtrudeGeometry(shape, { depth: 0.01, bevelEnabled: false });
+    const pos = geo.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const y = pos.getY(i);
+      const t = THREE.MathUtils.clamp(y / length, 0, 1);
+      pos.setZ(i, pos.getZ(i) + curl * Math.pow(t, 2));
+    }
+    geo.computeVertexNormals();
+    return geo;
+  }
+
+  const petalMaterial = new THREE.MeshPhysicalMaterial({
+    vertexColors: true, roughness: 0.32, metalness: 0,
+    clearcoat: 0.55, clearcoatRoughness: 0.3,
+    transmission: 0.12, side: THREE.DoubleSide,
+    emissive: new THREE.Color('#3a0018'), emissiveIntensity: 0.02
+  });
+  const stemMaterial = new THREE.MeshStandardMaterial({ color: 0x3c7a34, roughness: 0.55 });
+  const leafMaterial = new THREE.MeshStandardMaterial({ color: 0x3f8a3a, roughness: 0.5, side: THREE.DoubleSide });
+  const filamentMaterial = new THREE.MeshStandardMaterial({ color: 0xfff1cf, roughness: 0.4 });
+  const antherMaterial = new THREE.MeshStandardMaterial({ color: 0x7a2a1a, roughness: 0.6, emissive: 0x2a0a05, emissiveIntensity: 0.3 });
+  const ribbonMaterial = new THREE.MeshPhysicalMaterial({ color: 0xe0508a, roughness: 0.25, clearcoat: 0.7, side: THREE.DoubleSide });
+
+  function makeLilyFlower(scaleF) {
+    const flower = new THREE.Group();
+    const petalDefs = [
+      { count: 3, length: 1.5 * scaleF, width: 0.55 * scaleF, offset: 0, tiltClosed: -0.15, tiltOpen: 1.25, big: true },
+      { count: 3, length: 1.25 * scaleF, width: 0.42 * scaleF, offset: Math.PI / 3, tiltClosed: -0.05, tiltOpen: 0.95, big: false }
+    ];
+
+    petalDefs.forEach(def => {
+      const geo = makePetalGeometry(def.length, def.width, 0.55 * scaleF, 0.12 * scaleF);
+      for (let i = 0; i < def.count; i++) {
+        const petal = new THREE.Mesh(geo, petalMaterial);
+        const angle = def.offset + (i / def.count) * Math.PI * 2;
+        petal.position.set(0, 0, 0);
+        petal.rotation.y = angle;
+        petal.userData.closedRot = def.tiltClosed;
+        petal.userData.openRot = def.tiltOpen;
+        petal.userData.baseAngle = angle;
+        petal.castShadow = true;
+        petal.receiveShadow = true;
+        flower.add(petal);
+      }
+    });
+
+    // Pistil (center stalk + stigma tip)
+    const pistil = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.014 * scaleF, 0.02 * scaleF, 0.9 * scaleF, 8),
+      stemMaterial
+    );
+    pistil.position.y = 0.42 * scaleF;
+    flower.add(pistil);
+    const stigma = new THREE.Mesh(new THREE.SphereGeometry(0.035 * scaleF, 8, 8), stemMaterial);
+    stigma.position.y = 0.88 * scaleF;
+    flower.add(stigma);
+
+    // Stamens (filament + anther), radiating and animated with the bloom
+    const stamens = [];
+    for (let i = 0; i < 6; i++) {
+      const group = new THREE.Group();
+      const filament = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.006 * scaleF, 0.009 * scaleF, 0.7 * scaleF, 6),
+        filamentMaterial
+      );
+      filament.position.y = 0.35 * scaleF;
+      group.add(filament);
+      const anther = new THREE.Mesh(new THREE.SphereGeometry(0.045 * scaleF, 8, 6), antherMaterial);
+      anther.scale.set(1, 1.8, 0.6);
+      anther.position.y = 0.72 * scaleF;
+      group.add(anther);
+      const angle = (i / 6) * Math.PI * 2;
+      group.userData.baseAngle = angle;
+      group.userData.closedRot = 0;
+      group.userData.openRot = 0.55;
+      group.rotation.y = angle;
+      stamens.push(group);
+      flower.add(group);
+    }
+
+    flower.userData.petals = flower.children.filter(c => c.userData.openRot !== undefined);
+    flower.userData.swayPhase = Math.random() * Math.PI * 2;
+    return flower;
+  }
+
+  // ---- Assemble a small bouquet of three lilies + stems + leaves + ribbon
+  const bouquet = new THREE.Group();
+  const stemConfigs = [
+    { h: 2.6, tilt: -0.18, rotY: 0, scale: 1.0 },
+    { h: 2.3, tilt: 0.28, rotY: 2.2, scale: 0.85 },
+    { h: 2.45, tilt: -0.35, rotY: -2.1, scale: 0.9 }
+  ];
+
+  stemConfigs.forEach(cfg => {
+    const stemGroup = new THREE.Group();
+    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.05, cfg.h, 8), stemMaterial);
+    stem.position.y = cfg.h / 2;
+    stem.castShadow = true;
+    stemGroup.add(stem);
+
+    // A couple of leaves along the stem
+    for (let i = 0; i < 2; i++) {
+      const leafGeo = makeLeafGeometry(0.55, 0.16, 0.25);
+      const leaf = new THREE.Mesh(leafGeo, leafMaterial);
+      leaf.position.y = cfg.h * (0.3 + i * 0.25);
+      leaf.rotation.y = i * 2.4 + cfg.rotY;
+      leaf.rotation.z = -0.9;
+      leaf.castShadow = true;
+      stemGroup.add(leaf);
+    }
+
+    const flower = makeLilyFlower(cfg.scale);
+    flower.position.y = cfg.h;
+    stemGroup.add(flower);
+
+    stemGroup.rotation.z = cfg.tilt;
+    stemGroup.rotation.y = cfg.rotY;
+    bouquet.add(stemGroup);
+  });
+
+  // Ribbon bow at the base, tying the stems together
+  const bow = new THREE.Group();
+  const loopGeo = new THREE.TorusGeometry(0.28, 0.09, 8, 20, Math.PI * 1.5);
+  const loopL = new THREE.Mesh(loopGeo, ribbonMaterial);
+  loopL.rotation.set(Math.PI / 2, 0, 0.6);
+  loopL.position.set(-0.18, 0, 0);
+  const loopR = new THREE.Mesh(loopGeo, ribbonMaterial);
+  loopR.rotation.set(Math.PI / 2, 0, -0.6 + Math.PI);
+  loopR.position.set(0.18, 0, 0);
+  const knot = new THREE.Mesh(new THREE.SphereGeometry(0.13, 12, 12), ribbonMaterial);
+  bow.add(loopL, loopR, knot);
+  bow.position.set(0, -0.15, 0.15);
+  bouquet.add(bow);
+
+  bouquet.position.set(0, -2.4, 0);
+  bouquet.scale.set(0.001, 0.001, 0.001);
+  scene.add(bouquet);
+
+  // ============================================================
+  // 3. SPARKLE PARTICLES
+  // ============================================================
+  function makeSparkleTexture() {
+    const size = 64;
+    const c = document.createElement('canvas');
+    c.width = c.height = size;
+    const ctx = c.getContext('2d');
+    const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+    g.addColorStop(0, 'rgba(255,255,255,1)');
+    g.addColorStop(0.35, 'rgba(255,210,235,0.8)');
+    g.addColorStop(1, 'rgba(255,180,220,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, size, size);
+    return new THREE.CanvasTexture(c);
+  }
+
+  const SPARKLE_COUNT = 220;
+  const sparkleGeo = new THREE.BufferGeometry();
+  const sparklePos = new Float32Array(SPARKLE_COUNT * 3);
+  const sparkleColor = new Float32Array(SPARKLE_COUNT * 3);
+  const sparklePhase = new Float32Array(SPARKLE_COUNT);
+  const sparkleSpeed = new Float32Array(SPARKLE_COUNT);
+  const palette = [new THREE.Color('#ffffff'), new THREE.Color('#ffd7a8'), new THREE.Color('#ff9fc4')];
+
+  for (let i = 0; i < SPARKLE_COUNT; i++) {
+    const r = 1.4 + Math.random() * 2.4;
+    const theta = Math.random() * Math.PI * 2;
+    const y = (Math.random() - 0.3) * 3.2;
+    sparklePos[i * 3] = Math.cos(theta) * r;
+    sparklePos[i * 3 + 1] = y;
+    sparklePos[i * 3 + 2] = Math.sin(theta) * r * 0.6;
+    const c = palette[Math.floor(Math.random() * palette.length)];
+    sparkleColor[i * 3] = c.r; sparkleColor[i * 3 + 1] = c.g; sparkleColor[i * 3 + 2] = c.b;
+    sparklePhase[i] = Math.random() * Math.PI * 2;
+    sparkleSpeed[i] = 0.4 + Math.random() * 1.2;
+  }
+  sparkleGeo.setAttribute('position', new THREE.BufferAttribute(sparklePos, 3));
+  sparkleGeo.setAttribute('color', new THREE.BufferAttribute(sparkleColor, 3));
+
+  const sparkleMaterial = new THREE.PointsMaterial({
+    size: 0.14, map: makeSparkleTexture(), transparent: true, opacity: 0,
+    vertexColors: true, blending: THREE.AdditiveBlending, depthWrite: false
+  });
+  const sparkles = new THREE.Points(sparkleGeo, sparkleMaterial);
+  sparkles.position.copy(bouquet.position);
+  scene.add(sparkles);
+
+  // ============================================================
+  // 4. SHOW / HIDE + BLOOM ANIMATION STATE
+  // ============================================================
+  let targetOpen = 0;
+  let currentOpen = 0;
+  const clock = new THREE.Clock();
+
+  function animate() {
+    requestAnimationFrame(animate);
+    const dt = Math.min(clock.getDelta(), 0.05);
+    const t = clock.elapsedTime;
+
+    // Ease toward target with a gentle overshoot feel
+    currentOpen += (targetOpen - currentOpen) * (targetOpen > currentOpen ? 0.06 : 0.09);
+    const eased = THREE.MathUtils.smootherstep(currentOpen, 0, 1);
+
+    bouquet.scale.setScalar(THREE.MathUtils.lerp(0.001, 1, eased));
+    bouquet.position.y = THREE.MathUtils.lerp(-2.6, -1.35, eased);
+
+    if (eased > 0.02) {
+      bouquet.rotation.y += 0.006 + eased * 0.006;
+    }
+
+    // Unfurl every petal / stamen from closed to open
+    bouquet.traverse(obj => {
+      if (obj.userData && obj.userData.openRot !== undefined) {
+        const sway = Math.sin(t * 0.6 + (obj.parent.userData.swayPhase || 0)) * 0.02 * eased;
+        obj.rotation.x = THREE.MathUtils.lerp(obj.userData.closedRot, obj.userData.openRot, eased) + sway;
+      }
+    });
+
+    // Sparkles: fade in with bloom, drift upward, twinkle
+    sparkleMaterial.opacity = eased * 0.9;
+    const posAttr = sparkleGeo.attributes.position;
+    const colAttr = sparkleGeo.attributes.color;
+    for (let i = 0; i < SPARKLE_COUNT; i++) {
+      let y = posAttr.getY(i) + dt * sparkleSpeed[i] * 0.15 * (0.3 + eased);
+      if (y > 2.2) y = -1.6;
+      posAttr.setY(i, y);
+      const twinkle = 0.4 + 0.6 * Math.abs(Math.sin(t * sparkleSpeed[i] + sparklePhase[i]));
+      const base = palette[i % palette.length];
+      colAttr.setXYZ(i, base.r * twinkle, base.g * twinkle, base.b * twinkle);
+    }
+    posAttr.needsUpdate = true;
+    colAttr.needsUpdate = true;
+
+    glowPoint.intensity = 1.0 + eased * 1.2 + Math.sin(t * 2.2) * 0.15 * eased;
+
+    renderer.render(scene, camera3d);
+  }
+  animate();
+
+  // Tie the "With Love" text glow to the bloom state
+  const loveText = document.getElementById('love-text');
+  const loveWrap = document.getElementById('love-wrap');
+  function setLoveIntensity(open) {
+    loveWrap.style.opacity = open ? '1' : '0.55';
+    loveWrap.style.transform = 'translateX(-50%) scale(' + (open ? 1.06 : 1) + ')';
+    loveText.style.filter = open ? 'drop-shadow(0 0 18px rgba(255,140,190,0.55))' : 'none';
+  }
+
+  window.addEventListener('resize', () => {
+    camera3d.aspect = window.innerWidth / window.innerHeight;
+    camera3d.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+  // ============================================================
+  // 5. CAMERA FEED + HAND TRACKING
+  // ============================================================
+  const videoEl = document.getElementById('bg-video');
+  const statusBadge = document.getElementById('status-badge');
+  const statusText = document.getElementById('status-text');
+  const overlay = document.getElementById('overlay-msg');
+  const overlayTitle = document.getElementById('overlay-title');
+  const overlayBody = document.getElementById('overlay-body');
+  const overlayRetry = document.getElementById('overlay-retry');
+
+  function showOverlay(title, body, showRetry) {
+    overlayTitle.textContent = title;
+    overlayBody.textContent = body;
+    overlayRetry.hidden = !showRetry;
+    overlay.style.opacity = '1';
+    overlay.style.pointerEvents = 'auto';
+  }
+  function hideOverlay() {
+    overlay.style.opacity = '0';
+    setTimeout(() => { overlay.style.pointerEvents = 'none'; }, 600);
+  }
+
+  // Scale-invariant open/closed detection with hysteresis + debounce,
+  // because raw pixel distances vary wildly with how close the hand is to the camera.
+  let isOpen = false;
+  let pendingState = null;
+  let pendingCount = 0;
+  const DEBOUNCE_FRAMES = 3;
+  const OPEN_THRESHOLD = 1.9;
+  const CLOSE_THRESHOLD = 1.35;
+
+  function dist2D(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
+
+  function onResults(results) {
+    if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+      const lm = results.multiHandLandmarks[0];
+      const wrist = lm[0];
+      const palmRef = lm[9]; // middle finger MCP — scales with hand size/distance
+      const palmSize = Math.max(dist2D(wrist, palmRef), 0.001);
+
+      const tips = [lm[8], lm[12], lm[16], lm[20]];
+      const avgTip = tips.reduce((s, p) => s + dist2D(p, wrist), 0) / tips.length;
+      const ratio = avgTip / palmSize;
+
+      const wantsOpen = isOpen ? ratio > CLOSE_THRESHOLD : ratio > OPEN_THRESHOLD;
+
+      if (wantsOpen === pendingState) {
+        pendingCount++;
+      } else {
+        pendingState = wantsOpen;
+        pendingCount = 1;
+      }
+      if (pendingCount >= DEBOUNCE_FRAMES && wantsOpen !== isOpen) {
+        isOpen = wantsOpen;
+      }
+
+      targetOpen = isOpen ? 1 : 0;
+      setLoveIntensity(isOpen);
+      if (isOpen) {
+        statusBadge.className = 'active';
+        statusText.textContent = 'In bloom, just for you 🌸';
+      } else {
+        statusBadge.className = 'closed';
+        statusText.textContent = 'Resting — open your hand';
+      }
+    } else {
+      targetOpen = 0;
+      isOpen = false;
+      pendingState = null;
+      pendingCount = 0;
+      setLoveIntensity(false);
+      statusBadge.className = '';
+      statusText.textContent = 'Show your hand to the camera…';
+    }
+  }
+
+  const hands = new Hands({
+    locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+  });
+  hands.setOptions({
+    maxNumHands: 1,
+    modelComplexity: 1,
+    minDetectionConfidence: 0.65,
+    minTrackingConfidence: 0.65
+  });
+  hands.onResults(onResults);
+
+  let mpCamera = null;
+
+  function startExperience() {
+    mpCamera = new Camera(videoEl, {
+      onFrame: async () => { await hands.send({ image: videoEl }); },
+      width: 640,
+      height: 480
+    });
+    mpCamera.start()
+      .then(() => hideOverlay())
+      .catch((err) => {
+        console.error('Camera start failed', err);
+        showOverlay(
+          'Couldn’t reach the camera',
+          'Please allow camera access in your browser settings, then try again.',
+          true
+        );
+      });
+  }
+
+  overlayRetry.addEventListener('click', () => {
+    showOverlay('Getting everything ready…', 'One moment, waking up the camera…', false);
+    startExperience();
+  });
+
+  // Kick things off
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    showOverlay('Camera not supported', 'This browser can’t access the camera. Try Chrome, Edge, or Safari.', false);
+  } else {
+    startExperience();
+  }
+})();
+</script>
+</body>
+</html>
